@@ -1,0 +1,343 @@
+// Arthur & Linda — wedding dashboard + public invitation
+// Local dev uses SQLite (file:./dev.db). Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth (single admin: create via `pnpm create-admin`, then sign-in only) ─
+// Single-tenant: deploymentId = "default" — at most one user row per database.
+
+model User {
+  id            String    @id @default(cuid())
+  deploymentId  String    @unique @default("default")
+  email         String    @unique
+  name          String?
+  phone         String?
+  emailVerified DateTime?
+  passwordHash  String?
+  avatarUrl     String?
+  role          UserRole  @default(ADMIN)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  weddings WeddingUser[]
+}
+
+// ─── Wedding (single-tenant: one row per database) ────────────────
+
+model Wedding {
+  id            String    @id @default(cuid())
+  deploymentId  String    @unique @default("default")
+  slug          String    @unique
+  groomName     String
+  brideName     String
+  groomFullName String?
+  brideFullName String?
+  groomParents  String?
+  brideParents  String?
+  eventDate     DateTime
+  venueName     String?
+  venueAddress  String?
+  venueMapUrl   String?
+  quoteText     String?
+  quoteSource   String?
+  giftInfo      String?
+  bankName      String?
+  bankAccount   String?
+  bankHolder    String?
+  currency      String    @default("USD")
+  timezone      String    @default("Asia/Phnom_Penh")
+  /// Optional overrides for public landing copy (hero, story slides, RSVP blurb, hotels). Merged with code defaults when null.
+  landingOverrides Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  users           WeddingUser[]
+  events          WeddingEvent[]
+  guests          Guest[]
+  rsvps           Rsvp[]
+  budgetCategories BudgetCategory[]
+  expenses        Expense[]
+  vendors         Vendor[]
+  invoices        Invoice[]
+  timelineTasks   TimelineTask[]
+  galleryRolls    GalleryRoll[]
+  galleryPhotos   GalleryPhoto[]
+
+  @@index([slug])
+}
+
+model WeddingUser {
+  id        String      @id @default(cuid())
+  userId    String
+  weddingId String
+  role      WeddingRole @default(ADMIN)
+  createdAt DateTime    @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wedding Wedding @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weddingId])
+}
+
+model WeddingEvent {
+  id          String    @id @default(cuid())
+  weddingId   String
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime?
+  location    String?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  wedding Wedding @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+}
+
+// ─── Guests & public RSVP ───────────────────────────────────────────
+
+model Guest {
+  id          String        @id @default(cuid())
+  weddingId   String
+  name        String
+  phone       String?
+  email       String?
+  category    GuestCategory @default(FRIEND)
+  invitedPax  Int           @default(1)
+  side        GuestSide     @default(BOTH)
+  tableNumber String?
+  notes       String?
+  checkedIn   Boolean       @default(false)
+  checkedInAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  wedding Wedding @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  rsvp    Rsvp?
+
+  @@index([weddingId])
+  @@index([weddingId, category])
+}
+
+model Rsvp {
+  id             String     @id @default(cuid())
+  weddingId      String
+  guestId        String?    @unique
+  name           String
+  phone          String?
+  email          String?
+  attendance     RsvpStatus @default(PENDING)
+  paxCount       Int        @default(1)
+  /// Whose side. Mirrors Guest.side — stored as "GROOM" | "BRIDE" | "BOTH" (or null).
+  side           String?
+  /// Mirrors Guest.category — stored as one of GuestCategory values (or null).
+  category       String?
+  message        String?
+  submittedAt    DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  wedding Wedding @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  guest   Guest?  @relation(fields: [guestId], references: [id], onDelete: SetNull)
+
+  @@index([weddingId])
+  @@index([weddingId, attendance])
+}
+
+// ─── Budget ─────────────────────────────────────────────────────────
+
+model BudgetCategory {
+  id              String   @id @default(cuid())
+  weddingId       String
+  name            String
+  allocatedAmount Float    @default(0)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  wedding  Wedding   @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@index([weddingId])
+}
+
+model Expense {
+  id            String        @id @default(cuid())
+  weddingId     String
+  categoryId    String
+  vendorId      String?
+  description   String
+  amount        Float
+  paidAmount    Float         @default(0)
+  paymentStatus PaymentStatus @default(UNPAID)
+  dueDate       DateTime?
+  paidDate      DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  wedding  Wedding        @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  category BudgetCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  vendor   Vendor?        @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  @@index([weddingId])
+  @@index([weddingId, categoryId])
+}
+
+// ─── Vendors & invoices ────────────────────────────────────────────
+
+model Vendor {
+  id             String   @id @default(cuid())
+  weddingId      String
+  name           String
+  serviceType    String
+  contactPerson  String?
+  phone          String?
+  email          String?
+  website        String?
+  contractAmount Float    @default(0)
+  paidAmount     Float    @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  wedding  Wedding   @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+  invoices Invoice[]
+
+  @@index([weddingId])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  weddingId     String
+  vendorId      String?
+  invoiceNumber String?
+  amount        Float
+  dueDate       DateTime?
+  paymentStatus PaymentStatus @default(UNPAID)
+  category      String?
+  fileUrl       String?
+  fileName      String?
+  fileType      String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  wedding Wedding @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  vendor  Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  @@index([weddingId])
+}
+
+// ─── Timeline ───────────────────────────────────────────────────────
+
+model TimelineTask {
+  id          String     @id @default(cuid())
+  weddingId   String
+  title       String
+  description String?
+  category    String?
+  dueDate     DateTime?
+  status      TaskStatus @default(TODO)
+  vendorName  String?
+  notes       String?
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  wedding Wedding @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+  @@index([weddingId, status])
+}
+
+model GalleryRoll {
+  id        String   @id @default(cuid())
+  weddingId String
+  label     String
+  token     String   @unique
+  maxPhotos Int      @default(15)
+  filterMode GalleryFilterMode @default(VINTAGE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wedding Wedding      @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  photos  GalleryPhoto[]
+
+  @@index([weddingId])
+}
+
+model GalleryPhoto {
+  id        String   @id @default(cuid())
+  weddingId String
+  rollId    String
+  url       String
+  createdAt DateTime @default(now())
+
+  wedding Wedding    @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  roll    GalleryRoll @relation(fields: [rollId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+  @@index([rollId, createdAt])
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  VIEWER
+}
+
+enum WeddingRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum GuestCategory {
+  FAMILY
+  RELATIVE
+  FRIEND
+  VIP
+  COLLEAGUE
+  OTHER
+}
+
+enum GuestSide {
+  GROOM
+  BRIDE
+  BOTH
+}
+
+enum RsvpStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum GalleryFilterMode {
+  VINTAGE
+  ORIGINAL
+}

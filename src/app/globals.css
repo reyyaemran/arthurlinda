@@ -1,0 +1,523 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* Dashboard + marketing — earthy matcha / forest (brand board: cream #FBF8EF, taupe #E5E2D9, matcha #505631, forest #2B3210; orange #DE6E27 only as rare accent) */
+  --color-wedly-gold: #505631; /* primary accent = matcha moss */
+  --color-wedly-gold-light: #fbf8ef;
+  --color-wedly-cream: #fbf8ef;
+  --color-wedly-beige: #e5e2d9;
+  --color-wedly-pink: #e8e6df; /* green-tinted neutral */
+  --color-wedly-ink: #2b3210; /* forest — main text */
+  --color-wedly-border: #d8d4c9;
+  --color-wedly-muted: #6b7355;
+  /* Legacy olive token (unused on default story band; kept for utilities) */
+  --color-story-olive: var(--story-olive-nude);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono);
+  --font-tenor-sans: var(--font-tenor-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+:root {
+  --radius: 0.75rem;
+  /* Display serif / invitation — Cormorant Garamond */
+  --font-playfair: var(--font-cormorant), "Cormorant Garamond", ui-serif, Georgia, serif;
+
+  /* Legacy flat token (header / misc); story band uses gradient vars below */
+  --story-olive-nude: #3a4530;
+  /* ── Core palette — warm parchment + matcha (refined contrast) ── */
+  --background: #f9f6ef;
+  --foreground: #1e230f;
+  --card: #fefcf8;
+  --card-foreground: #1e230f;
+  --popover: #fefcf8;
+  --popover-foreground: #1e230f;
+  --primary: #455026;
+  --primary-foreground: #faf8f2;
+  --secondary: #e8e4da;
+  --secondary-foreground: #1e230f;
+  --muted: #f0ece3;
+  --muted-foreground: #5f6648;
+  --accent: #ebe6dc;
+  --accent-foreground: #1e230f;
+  --destructive: #c93434;
+  --border: #e0dbd0;
+  --input: #d8d3c8;
+  --ring: #455026;
+  --chart-1: #455026;
+  --chart-2: #1e230f;
+  --chart-3: #6b7652;
+  --chart-4: #e3dfd4;
+  --chart-5: #c45a1a;
+
+  /* Sidebar */
+  --sidebar: #f6f2e9;
+  --sidebar-foreground: #1e230f;
+  --sidebar-primary: #455026;
+  --sidebar-primary-foreground: #faf8f2;
+  --sidebar-accent: #ebe6dc;
+  --sidebar-accent-foreground: #1e230f;
+  --sidebar-border: #e0dbd0;
+  --sidebar-ring: #455026;
+}
+
+/* Dark mode — cool graphite + soft moonlight accent (layered depth) */
+.dark {
+  --background: #090a0c;
+  --foreground: #f1f3f5;
+  --card: #12141a;
+  --card-foreground: #f1f3f5;
+  --popover: #161922;
+  --popover-foreground: #f1f3f5;
+  --primary: #e8eaef;
+  --primary-foreground: #0c0d10;
+  --secondary: #1e222b;
+  --secondary-foreground: #e8eaed;
+  --muted: #1a1e26;
+  --muted-foreground: #8b939e;
+  --accent: #222731;
+  --accent-foreground: #f1f3f5;
+  --destructive: #f08080;
+  --border: rgba(148, 163, 184, 0.11);
+  --input: rgba(148, 163, 184, 0.14);
+  --ring: #8b95a8;
+  --chart-1: #9ca8b8;
+  --chart-2: #6b7585;
+  --chart-3: #d1d6de;
+  --chart-4: #4a5363;
+  --chart-5: #e88b4a;
+
+  --sidebar: #060708;
+  --sidebar-foreground: #f1f3f5;
+  --sidebar-primary: #f4f5f7;
+  --sidebar-primary-foreground: #0c0d10;
+  --sidebar-accent: #15181f;
+  --sidebar-accent-foreground: #f1f3f5;
+  --sidebar-border: rgba(148, 163, 184, 0.09);
+  --sidebar-ring: #8b95a8;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground text-base font-normal;
+  }
+
+  /* Typography scale — Cormorant Garamond for headings */
+  h1 {
+    font-family: var(--font-playfair);
+    @apply scroll-m-20 text-4xl font-light tracking-tight text-foreground lg:text-5xl;
+  }
+  h2 {
+    font-family: var(--font-playfair);
+    @apply scroll-m-20 text-3xl font-light tracking-tight text-foreground;
+  }
+  h3 {
+    font-family: var(--font-playfair);
+    @apply scroll-m-20 text-2xl font-normal tracking-tight text-foreground;
+  }
+  h4 {
+    @apply scroll-m-20 text-xl font-normal tracking-tight text-foreground;
+  }
+  small {
+    @apply text-sm leading-normal;
+  }
+
+  /* Drawer form typography baseline: keep input text, placeholders and date
+     picker typography consistent across all drawers. */
+  [data-slot="drawer-content"] input:not([type="checkbox"]):not([type="radio"]),
+  [data-slot="drawer-content"] textarea,
+  [data-slot="drawer-content"] button[role="combobox"] {
+    font-size: 15px;
+    line-height: 1.35;
+  }
+
+  [data-slot="drawer-content"] input::placeholder,
+  [data-slot="drawer-content"] textarea::placeholder,
+  [data-slot="drawer-content"] button[role="combobox"][data-placeholder] {
+    font-size: 14px;
+    color: color-mix(in oklab, var(--muted-foreground) 72%, transparent);
+  }
+
+  [data-slot="drawer-content"] input[type="date"] {
+    letter-spacing: 0.01em;
+  }
+
+  [data-slot="drawer-content"] input[type="date"]::-webkit-date-and-time-value,
+  [data-slot="drawer-content"] input[type="date"]::-webkit-datetime-edit {
+    font-size: inherit;
+    line-height: inherit;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-playfair);
+  }
+
+  /**
+   * public/FOOTER .svg — Stay + footer block (bottom-anchored, full width).
+   */
+  .landing-footer-deco {
+    background-color: var(--background);
+    background-image: url("/FOOTER%20.svg");
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    background-size: 100% auto;
+    overflow-x: hidden;
+  }
+
+  /**
+   * public/Body.svg — Our Story + quote band (same rules as .landing-footer-deco: bottom-anchored,
+   * 100% auto) so wide art (e.g. bee wings) isn’t cropped like center/cover.
+   */
+  .landing-body-band-deco {
+    background-color: var(--background);
+    background-image: url("/Body.svg");
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    background-size: 100% auto;
+    overflow-x: hidden;
+  }
+}
+
+/* Wide landscape art: narrow viewports */
+@media (max-width: 767px) {
+  .landing-footer-deco {
+    background-size: 158% auto;
+  }
+
+  /**
+   * Body.svg — never shrink below ~native art width on mobile (viewBox ~1024px wide).
+   * Wider viewports in this range use 100% so it can grow; narrow phones clip sides, bee stays large.
+   */
+  .landing-body-band-deco {
+    background-size: max(1030px, 100%) auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .landing-footer-deco {
+    background-size: 172% auto;
+  }
+}
+
+/* iOS Safari: prevent auto-zoom when focusing small form fields. */
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+.dark .landing-footer-deco,
+.dark .landing-body-band-deco {
+  background-image: none;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-fade-in-up-delay {
+  animation: fade-in-up 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children when parent reveals */
+.fade-in-section.visible .fade-in-section {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-in-section.delay-100 {
+  transition-delay: 0.1s;
+}
+
+.fade-in-section.delay-200 {
+  transition-delay: 0.2s;
+}
+
+.fade-in-section.delay-300 {
+  transition-delay: 0.3s;
+}
+
+.fade-in-section.delay-400 {
+  transition-delay: 0.4s;
+}
+
+.fade-in-section.delay-500 {
+  transition-delay: 0.5s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s ease-in-out infinite;
+}
+
+@keyframes soft-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+.animate-soft-bounce {
+  animation: soft-bounce 2.5s ease-in-out infinite;
+}
+
+/* Hero.svg — continuous wind sway (flowers + leaves + stems) */
+@keyframes hero-wind-sway {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  15% {
+    transform: translate(2px, -4px) rotate(0.9deg);
+  }
+  30% {
+    transform: translate(4px, -7px) rotate(1.1deg);
+  }
+  45% {
+    transform: translate(1px, -5px) rotate(0.4deg);
+  }
+  60% {
+    transform: translate(-3px, -6px) rotate(-0.8deg);
+  }
+  75% {
+    transform: translate(-5px, -3px) rotate(-1deg);
+  }
+  90% {
+    transform: translate(-2px, -4px) rotate(-0.3deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+.hero-svg-wind .hero-line {
+  display: none;
+}
+
+.hero-svg-wind .hero-flower-petal,
+.hero-svg-wind .hero-leaf,
+.hero-svg-wind .hero-stem {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation-name: hero-wind-sway;
+  animation-duration: var(--hero-wind-duration, 3.6s);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: var(--hero-wind-delay, 0s);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-svg-wind .hero-flower-petal,
+  .hero-svg-wind .hero-leaf,
+  .hero-svg-wind .hero-stem {
+    animation: none !important;
+  }
+}
+
+/* ─── Elegant landing utilities ────────────────────────────── */
+
+/* Thin ornamental rule used as section dividers */
+.ornament-rule {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.ornament-rule::before,
+.ornament-rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.18;
+}
+
+/* Story card — refined lift on hover */
+.our-story-card {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.our-story-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 48px -8px rgba(30, 35, 15, 0.12);
+}
+
+/* Vintage black-and-white photo treatment — neutral B&W, just a hint of warmth */
+.photo-vintage-bw {
+  filter: grayscale(1) sepia(0.06) contrast(1.1) brightness(0.96);
+}
+
+/* Film-grain overlay — apply to the photo's container (positioned wrapper) */
+.photo-grain {
+  position: relative;
+  isolation: isolate;
+}
+.photo-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='220' height='220' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+  opacity: 0.22;
+  mix-blend-mode: overlay;
+}
+
+/* Section-label helper (small-caps eyebrow) */
+.section-label {
+  font-family: var(--font-playfair);
+  font-size: 0.6875rem;     /* 11px */
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  opacity: 0.68;
+}
+
+/* Image overlay shimmer — used on story cards */
+.img-overlay {
+  background: linear-gradient(
+    160deg,
+    rgba(250, 247, 238, 0.06) 0%,
+    rgba(250, 247, 238, 0.00) 60%
+  );
+}
+
+/* Countdown separator dot */
+.countdown-sep {
+  color: var(--chart-5);
+  opacity: 0.35;
+  font-size: 1.1rem;
+  line-height: 1;
+  align-self: flex-start;
+  padding-top: 0.25rem;
+}
+
+/* Template 2 – Soft Beige, Neutral & Pink (brand board) */
+.template2-theme {
+  --invitation-accent: #f69d9a;
+  --invitation-bg: #efebde;
+  --invitation-bg-card: #efebde;
+  --invitation-text: #502f41;
+  --invitation-muted: #502f41b3;
+  --invitation-border: #ead1aa;
+  --invitation-ring: #efebde;
+  --invitation-font-serif: var(--font-template2-serif, var(--font-playfair));
+  --invitation-font-sans: var(--font-template2-sans, var(--font-sans));
+}
