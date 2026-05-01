@@ -30,17 +30,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "This disposable roll is full" }, { status: 400 });
   }
 
-  const ext = file.type === "image/png" ? "png" : "jpg";
-  const filename = `${roll.token}-${randomUUID()}.${ext}`;
-  const relDir = path.join("uploads", "gallery");
-  const absDir = path.join(process.cwd(), "public", relDir);
-  await mkdir(absDir, { recursive: true });
-
   const bytes = Buffer.from(await file.arrayBuffer());
-  const absPath = path.join(absDir, filename);
-  await writeFile(absPath, bytes);
+  const mimeType = file.type === "image/png" ? "image/png" : "image/jpeg";
+  const isServerlessRuntime = process.env.VERCEL === "1" || process.env.AWS_REGION;
 
-  const url = `/${relDir.replaceAll(path.sep, "/")}/${filename}`;
+  let url: string;
+  if (isServerlessRuntime) {
+    // Vercel/serverless filesystems are ephemeral; persist image directly via DB URL payload.
+    url = `data:${mimeType};base64,${bytes.toString("base64")}`;
+  } else {
+    const ext = mimeType === "image/png" ? "png" : "jpg";
+    const filename = `${roll.token}-${randomUUID()}.${ext}`;
+    const relDir = path.join("uploads", "gallery");
+    const absDir = path.join(process.cwd(), "public", relDir);
+    await mkdir(absDir, { recursive: true });
+    const absPath = path.join(absDir, filename);
+    await writeFile(absPath, bytes);
+    url = `/${relDir.replaceAll(path.sep, "/")}/${filename}`;
+  }
+
   const photo = await getPrisma().galleryPhoto.create({
     data: {
       weddingId: roll.weddingId,
