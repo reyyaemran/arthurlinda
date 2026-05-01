@@ -18,7 +18,8 @@ const storySlideSchema = z.object({
       (s) =>
         s === undefined ||
         s.trim() === "" ||
-        /^\/uploads\/story\/[^/]+\.(jpe?g|png|webp|gif)$/i.test(s.trim()),
+        /^\/uploads\/story\/[^/]+\.(jpe?g|png|webp|gif)$/i.test(s.trim()) ||
+        /^data:image\/(jpeg|png|webp|gif);base64,[a-z0-9+/=]+$/i.test(s.trim()),
       "Invalid story image path",
     ),
 });

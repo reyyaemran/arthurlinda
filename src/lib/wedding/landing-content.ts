@@ -5,8 +5,10 @@ export type StorySlide = { title: string; text: string; imageUrl?: string };
 /** Safe public path for uploaded story art (ignore malformed values). */
 export function storySlideImageUrl(slide: { imageUrl?: string }): string | undefined {
   const u = slide.imageUrl?.trim();
-  if (!u || !u.startsWith("/uploads/story/")) return undefined;
-  return u;
+  if (!u) return undefined;
+  if (u.startsWith("/uploads/story/")) return u;
+  if (/^data:image\/(jpeg|png|webp|gif);base64,[a-z0-9+/=]+$/i.test(u)) return u;
+  return undefined;
 }
 
 export type LandingAccommodation = {
