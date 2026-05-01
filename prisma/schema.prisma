@@ -1,20 +1,21 @@
 // Arthur & Linda — wedding dashboard + public invitation
-// Uses MongoDB via Prisma. Configure DATABASE_URL in .env/.env.local.
+// Uses PostgreSQL (Supabase) via Prisma. Configure DATABASE_URL (and DIRECT_URL optionally).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mongodb"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Auth (single admin: create via `pnpm create-admin`, then sign-in only) ─
 // Single-tenant: deploymentId = "default" — at most one user row per database.
 
 model User {
-  id            String    @id @default(cuid()) @map("_id")
+  id            String    @id @default(cuid())
   deploymentId  String    @unique @default("default")
   email         String    @unique
   name          String?
@@ -32,7 +33,7 @@ model User {
 // ─── Wedding (single-tenant: one row per database) ────────────────
 
 model Wedding {
-  id            String    @id @default(cuid()) @map("_id")
+  id            String    @id @default(cuid())
   deploymentId  String    @unique @default("default")
   slug          String    @unique
   groomName     String
@@ -73,7 +74,7 @@ model Wedding {
 }
 
 model WeddingUser {
-  id        String      @id @default(cuid()) @map("_id")
+  id        String      @id @default(cuid())
   userId    String
   weddingId String
   role      WeddingRole @default(ADMIN)
@@ -86,7 +87,7 @@ model WeddingUser {
 }
 
 model WeddingEvent {
-  id          String    @id @default(cuid()) @map("_id")
+  id          String    @id @default(cuid())
   weddingId   String
   title       String
   description String?
@@ -105,7 +106,7 @@ model WeddingEvent {
 // ─── Guests & public RSVP ───────────────────────────────────────────
 
 model Guest {
-  id          String        @id @default(cuid()) @map("_id")
+  id          String        @id @default(cuid())
   weddingId   String
   name        String
   phone       String?
@@ -128,7 +129,7 @@ model Guest {
 }
 
 model Rsvp {
-  id             String     @id @default(cuid()) @map("_id")
+  id             String     @id @default(cuid())
   weddingId      String
   guestId        String?    @unique
   name           String
@@ -154,7 +155,7 @@ model Rsvp {
 // ─── Budget ─────────────────────────────────────────────────────────
 
 model BudgetCategory {
-  id              String   @id @default(cuid()) @map("_id")
+  id              String   @id @default(cuid())
   weddingId       String
   name            String
   allocatedAmount Float    @default(0)
@@ -169,7 +170,7 @@ model BudgetCategory {
 }
 
 model Expense {
-  id            String        @id @default(cuid()) @map("_id")
+  id            String        @id @default(cuid())
   weddingId     String
   categoryId    String
   vendorId      String?
@@ -194,7 +195,7 @@ model Expense {
 // ─── Vendors & invoices ────────────────────────────────────────────
 
 model Vendor {
-  id             String   @id @default(cuid()) @map("_id")
+  id             String   @id @default(cuid())
   weddingId      String
   name           String
   serviceType    String
@@ -216,7 +217,7 @@ model Vendor {
 }
 
 model Invoice {
-  id            String        @id @default(cuid()) @map("_id")
+  id            String        @id @default(cuid())
   weddingId     String
   vendorId      String?
   invoiceNumber String?
@@ -240,7 +241,7 @@ model Invoice {
 // ─── Timeline ───────────────────────────────────────────────────────
 
 model TimelineTask {
-  id          String     @id @default(cuid()) @map("_id")
+  id          String     @id @default(cuid())
   weddingId   String
   title       String
   description String?
@@ -260,7 +261,7 @@ model TimelineTask {
 }
 
 model GalleryRoll {
-  id        String   @id @default(cuid()) @map("_id")
+  id        String   @id @default(cuid())
   weddingId String
   label     String
   token     String   @unique
@@ -276,7 +277,7 @@ model GalleryRoll {
 }
 
 model GalleryPhoto {
-  id        String   @id @default(cuid()) @map("_id")
+  id        String   @id @default(cuid())
   weddingId String
   rollId    String
   url       String

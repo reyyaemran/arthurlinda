@@ -20,8 +20,8 @@ export function DbSetupRequired({ issue = "missing_env" }: DbSetupRequiredProps)
           <h1 className="text-xl font-semibold tracking-tight">Database not configured</h1>
           <p className="text-sm text-muted-foreground">
             {issue === "connection"
-              ? "Database variables exist, but this deployment cannot connect to MongoDB. Check Atlas Network Access (allow Vercel traffic) and credentials."
-              : "This app needs a valid MongoDB connection. Create a "}
+              ? "Database variables exist, but this deployment cannot connect to Supabase Postgres. Check credentials, SSL parameters, and database access settings."
+              : "This app needs a valid Supabase Postgres connection. Create a "}
             {issue === "missing_env" ? (
               <>
                 <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">.env.local</code>{" "}
@@ -34,9 +34,9 @@ export function DbSetupRequired({ issue = "missing_env" }: DbSetupRequiredProps)
         {issue === "connection" ? (
           <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 p-4 text-left">
             <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
-              Quick fix: in MongoDB Atlas, go to <span className="font-semibold">Network Access</span>{" "}
-              and allow <span className="font-mono">0.0.0.0/0</span> temporarily (or add trusted Vercel
-              egress IPs), then verify the DB user/password in your connection string.
+              Quick fix: verify both pooler and direct Supabase URLs, keep{" "}
+              <span className="font-mono">sslmode=require</span>, and ensure the DB password is correctly
+              URL-encoded.
             </p>
           </div>
         ) : null}
@@ -47,8 +47,11 @@ export function DbSetupRequired({ issue = "missing_env" }: DbSetupRequiredProps)
             .env.local
           </div>
           <pre className="text-xs leading-relaxed font-mono text-foreground whitespace-pre-wrap break-all">
-{`# MongoDB Atlas connection string
-DATABASE_URL="mongodb+srv://user:password@cluster.mongodb.net/arthurlinda?retryWrites=true&w=majority"
+{`# Supabase pooled connection (recommended for app runtime)
+DATABASE_URL="postgresql://postgres.<project-ref>:password@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require"
+
+# Supabase direct connection (recommended for Prisma schema operations)
+DIRECT_URL="postgresql://postgres:password@db.<project-ref>.supabase.co:5432/postgres?sslmode=require"
 
 # JWT secret — run: openssl rand -hex 32
 AUTH_SECRET="your-32-char-secret-here"`}

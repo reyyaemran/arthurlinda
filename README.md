@@ -114,7 +114,7 @@ source of truth for everything on the invitation:
 
 ```bash
 pnpm install
-npx prisma db push                    # sync schema to MongoDB
+npx prisma db push                    # sync schema to Supabase Postgres
 pnpm create-admin                     # interactive admin account creation
 pnpm dev
 ```
@@ -127,7 +127,8 @@ dashboard.
 
 See `.env.example`. The essentials:
 
-- `DATABASE_URL` — MongoDB connection string (Atlas recommended).
+- `DATABASE_URL` — Supabase Postgres pooled connection string.
+- `DIRECT_URL` — Supabase direct Postgres connection string (recommended for Prisma schema commands).
 - `AUTH_SECRET` — required; used by `jose` to sign session JWTs.
 - `NEXT_PUBLIC_WEDDING_SLUG` — defaults to `arthur-linda`; must match the
   `Wedding.slug` used by `/wedding/<slug>`.
