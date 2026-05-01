@@ -4,7 +4,11 @@ import { Terminal, Database } from "lucide-react";
  * Rendered by admin pages when DATABASE_URL is not set.
  * Gives Arthur / Linda clear copy-paste steps to get the app running.
  */
-export function DbSetupRequired() {
+type DbSetupRequiredProps = {
+  issue?: "missing_env" | "connection";
+};
+
+export function DbSetupRequired({ issue = "missing_env" }: DbSetupRequiredProps) {
   return (
     <main className="flex min-h-svh flex-col items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-lg space-y-6 text-center">
@@ -15,11 +19,27 @@ export function DbSetupRequired() {
         <div className="space-y-2">
           <h1 className="text-xl font-semibold tracking-tight">Database not configured</h1>
           <p className="text-sm text-muted-foreground">
-            This app needs a valid MongoDB connection. Create a{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">.env.local</code>{" "}
-            file in the project root with the variables below, then restart the dev server.
+            {issue === "connection"
+              ? "Database variables exist, but this deployment cannot connect to MongoDB. Check Atlas Network Access (allow Vercel traffic) and credentials."
+              : "This app needs a valid MongoDB connection. Create a "}
+            {issue === "missing_env" ? (
+              <>
+                <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">.env.local</code>{" "}
+                file in the project root with the variables below, then restart the dev server.
+              </>
+            ) : null}
           </p>
         </div>
+
+        {issue === "connection" ? (
+          <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 p-4 text-left">
+            <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+              Quick fix: in MongoDB Atlas, go to <span className="font-semibold">Network Access</span>{" "}
+              and allow <span className="font-mono">0.0.0.0/0</span> temporarily (or add trusted Vercel
+              egress IPs), then verify the DB user/password in your connection string.
+            </p>
+          </div>
+        ) : null}
 
         <div className="rounded-xl border border-border bg-muted/40 p-4 text-left space-y-3">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">

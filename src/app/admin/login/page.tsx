@@ -19,7 +19,7 @@ export default async function AdminLoginPage({
 }: {
   searchParams: Promise<{ email?: string }>;
 }) {
-  if (!process.env.DATABASE_URL) return <DbSetupRequired />;
+  if (!process.env.DATABASE_URL) return <DbSetupRequired issue="missing_env" />;
 
   const session = await getSession();
   if (session) redirect("/admin");
@@ -27,8 +27,9 @@ export default async function AdminLoginPage({
   let userCount: number;
   try {
     userCount = await countUsers();
-  } catch {
-    return <DbSetupRequired />;
+  } catch (error) {
+    console.error("Failed to query users for admin login:", error);
+    return <DbSetupRequired issue="connection" />;
   }
   if (userCount === 0) return <NoAdminYet />;
 
