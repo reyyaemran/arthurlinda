@@ -79,6 +79,13 @@ export async function POST(req: Request) {
   }
 
   const ext = MIME_TO_EXT[declared];
+  const isServerlessRuntime = process.env.VERCEL === "1" || !!process.env.AWS_REGION;
+
+  if (isServerlessRuntime) {
+    // Vercel filesystem is ephemeral; keep image in DB-friendly data URL.
+    return NextResponse.json({ url: `data:${declared};base64,${Buffer.from(buf).toString("base64")}` });
+  }
+
   const id = crypto.randomUUID();
   const filename = `${id}${ext}`;
   const dir = path.join(process.cwd(), "public", "uploads", "story");
@@ -89,13 +96,7 @@ export async function POST(req: Request) {
     await writeFile(fullPath, buf);
   } catch (e) {
     console.error("story-image write failed", e);
-    return NextResponse.json(
-      {
-        error:
-          "Could not save file on this server. If you deploy to a read-only host, configure object storage for uploads.",
-      },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Could not save story image." }, { status: 500 });
   }
 
   return NextResponse.json({ url: `/uploads/story/${filename}` });
