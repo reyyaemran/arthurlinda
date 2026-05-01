@@ -27,7 +27,7 @@ export async function GET() {
     where: { weddingId: wedding.id },
     include: {
       _count: { select: { photos: true } },
-      photos: { orderBy: { createdAt: "desc" }, take: 30 },
+      photos: { orderBy: { createdAt: "desc" }, take: 9 },
     },
     orderBy: { createdAt: "asc" },
   });

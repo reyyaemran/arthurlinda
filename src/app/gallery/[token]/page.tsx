@@ -27,7 +27,7 @@ export default async function PublicGalleryCapturePage({
   const recentWeddingPhotos = await prisma.galleryPhoto.findMany({
     where: { weddingId: roll.weddingId },
     orderBy: { createdAt: "desc" },
-    take: 48,
+    take: 12,
   });
 
   return (

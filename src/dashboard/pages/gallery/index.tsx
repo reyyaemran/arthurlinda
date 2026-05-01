@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Camera, MoreVertical, Palette, Pencil, Plus, QrCode, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -73,6 +73,7 @@ export function GalleryAdminPage({
   const [photoDialogUrl, setPhotoDialogUrl] = useState<string | null>(null);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [deletingRollId, setDeletingRollId] = useState<string | null>(null);
+  const refreshingRef = useRef(false);
 
   const sortedRolls = useMemo(
     () => [...rolls].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })),
@@ -80,10 +81,16 @@ export function GalleryAdminPage({
   );
 
   const refreshRolls = async () => {
-    const res = await fetch("/api/gallery/rolls", { cache: "no-store" });
-    const data = (await res.json().catch(() => ({}))) as { rolls?: RollVm[] };
-    if (res.ok && Array.isArray(data.rolls)) {
-      setRolls(data.rolls);
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
+    try {
+      const res = await fetch("/api/gallery/rolls", { cache: "no-store" });
+      const data = (await res.json().catch(() => ({}))) as { rolls?: RollVm[] };
+      if (res.ok && Array.isArray(data.rolls)) {
+        setRolls(data.rolls);
+      }
+    } finally {
+      refreshingRef.current = false;
     }
   };
 
@@ -93,7 +100,7 @@ export function GalleryAdminPage({
         void refreshRolls();
       }
     };
-    const id = window.setInterval(tick, 5000);
+    const id = window.setInterval(tick, 12000);
     const onVisible = () => {
       if (document.visibilityState === "visible") {
         void refreshRolls();

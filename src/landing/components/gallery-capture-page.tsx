@@ -200,6 +200,7 @@ export function GalleryCapturePage({
   const [previewDialogUrl, setPreviewDialogUrl] = useState<string | null>(null);
   const [previewDialogName, setPreviewDialogName] = useState<string>("moment");
   const [filterMode, setFilterMode] = useState<"VINTAGE" | "ORIGINAL">(initialFilterMode);
+  const refreshingRef = useRef(false);
   const momentsLabel = useMemo(() => formatMomentsLabel(label), [label]);
 
   const remaining = useMemo(
@@ -208,17 +209,23 @@ export function GalleryCapturePage({
   );
 
   const refreshPhotos = useCallback(async () => {
-    const res = await fetch(`/api/gallery/public/${token}`, { cache: "no-store" });
-    const data = (await res.json().catch(() => ({}))) as {
-      roll?: { photoCount: number; filterMode?: "VINTAGE" | "ORIGINAL" };
-      photos?: PhotoVm[];
-    };
-    if (res.ok && data.roll && data.photos) {
-      setPhotoCount(data.roll.photoCount);
-      if (data.roll.filterMode === "VINTAGE" || data.roll.filterMode === "ORIGINAL") {
-        setFilterMode(data.roll.filterMode);
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
+    try {
+      const res = await fetch(`/api/gallery/public/${token}`, { cache: "no-store" });
+      const data = (await res.json().catch(() => ({}))) as {
+        roll?: { photoCount: number; filterMode?: "VINTAGE" | "ORIGINAL" };
+        photos?: PhotoVm[];
+      };
+      if (res.ok && data.roll && data.photos) {
+        setPhotoCount(data.roll.photoCount);
+        if (data.roll.filterMode === "VINTAGE" || data.roll.filterMode === "ORIGINAL") {
+          setFilterMode(data.roll.filterMode);
+        }
+        setPhotos(data.photos);
       }
-      setPhotos(data.photos);
+    } finally {
+      refreshingRef.current = false;
     }
   }, [token]);
 
@@ -228,7 +235,7 @@ export function GalleryCapturePage({
         void refreshPhotos();
       }
     };
-    const id = window.setInterval(tick, 5000);
+    const id = window.setInterval(tick, 12000);
     const onVisible = () => {
       if (document.visibilityState === "visible") {
         void refreshPhotos();

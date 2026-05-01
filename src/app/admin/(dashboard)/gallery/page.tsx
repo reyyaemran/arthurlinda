@@ -25,18 +25,12 @@ export default async function AdminGalleryPage() {
   const wedding = await getWeddingForUser(session.user.id);
   if (!wedding) redirect("/admin/login");
 
-  // Keep existing rolls aligned with new product rule (15 photos / table).
-  await getPrisma().galleryRoll.updateMany({
-    where: { weddingId: wedding.id, NOT: { maxPhotos: 15 } },
-    data: { maxPhotos: 15 },
-  });
-
   const [rolls] = await Promise.all([
     getPrisma().galleryRoll.findMany({
       where: { weddingId: wedding.id },
       include: {
         _count: { select: { photos: true } },
-        photos: { orderBy: { createdAt: "desc" }, take: 30 },
+        photos: { orderBy: { createdAt: "desc" }, take: 9 },
       },
       orderBy: { createdAt: "asc" },
     }),

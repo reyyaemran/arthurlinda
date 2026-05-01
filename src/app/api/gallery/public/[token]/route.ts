@@ -19,7 +19,7 @@ export async function GET(
   const recentWeddingPhotos = await prisma.galleryPhoto.findMany({
     where: { weddingId: roll.weddingId },
     orderBy: { createdAt: "desc" },
-    take: 48,
+    take: 12,
   });
 
   return NextResponse.json({
