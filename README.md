@@ -4,7 +4,7 @@ A single-tenant wedding web app: a public invitation landing page for guests and
 private admin dashboard for the couple to manage every detail (RSVPs, guests,
 budget, vendors, timeline tasks, and the public invitation copy itself).
 
-Built with **Next.js 15 (App Router) + React 19 + Prisma + Tailwind v4 + shadcn/ui**.
+Built with **Next.js (App Router) + React 19 + Prisma + Tailwind v4 + shadcn/ui**.
 
 ## Single‑tenant model
 
@@ -114,7 +114,7 @@ source of truth for everything on the invitation:
 
 ```bash
 pnpm install
-pnpm prisma migrate dev --name init   # creates local SQLite dev.db
+npx prisma db push                    # sync schema to MongoDB
 pnpm create-admin                     # interactive admin account creation
 pnpm dev
 ```
@@ -127,8 +127,7 @@ dashboard.
 
 See `.env.example`. The essentials:
 
-- `DATABASE_URL` — SQLite by default (`file:./dev.db`), or Postgres/Neon in
-  production.
+- `DATABASE_URL` — MongoDB connection string (Atlas recommended).
 - `AUTH_SECRET` — required; used by `jose` to sign session JWTs.
 - `NEXT_PUBLIC_WEDDING_SLUG` — defaults to `arthur-linda`; must match the
   `Wedding.slug` used by `/wedding/<slug>`.

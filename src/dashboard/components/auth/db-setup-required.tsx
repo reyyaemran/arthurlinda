@@ -15,7 +15,7 @@ export function DbSetupRequired() {
         <div className="space-y-2">
           <h1 className="text-xl font-semibold tracking-tight">Database not configured</h1>
           <p className="text-sm text-muted-foreground">
-            This app needs a valid database connection (SQLite or PostgreSQL). Create a{" "}
+            This app needs a valid MongoDB connection. Create a{" "}
             <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">.env.local</code>{" "}
             file in the project root with the variables below, then restart the dev server.
           </p>
@@ -27,8 +27,8 @@ export function DbSetupRequired() {
             .env.local
           </div>
           <pre className="text-xs leading-relaxed font-mono text-foreground whitespace-pre-wrap break-all">
-{`# SQLite local file (no server needed)
-DATABASE_URL="file:./dev.db"
+{`# MongoDB Atlas connection string
+DATABASE_URL="mongodb+srv://user:password@cluster.mongodb.net/arthurlinda?retryWrites=true&w=majority"
 
 # JWT secret — run: openssl rand -hex 32
 AUTH_SECRET="your-32-char-secret-here"`}
@@ -41,14 +41,14 @@ AUTH_SECRET="your-32-char-secret-here"`}
             Then run in terminal
           </div>
           <pre className="text-xs leading-relaxed font-mono text-foreground">
-{`npx prisma migrate dev --name init
+{`npx prisma db push
 pnpm create-admin you@example.com 'your-password'
 # restart: npm run dev`}
           </pre>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          After the migration and create-admin command, reload /admin/login and sign in.
+          After db push and create-admin, reload /admin/login and sign in.
         </p>
       </div>
     </main>
