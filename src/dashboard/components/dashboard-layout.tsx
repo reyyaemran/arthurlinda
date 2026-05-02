@@ -56,7 +56,7 @@ function DashboardLayoutWrapper({ children, user }: Props) {
         >
           <DashboardHeader user={user} />
           <div
-            className="flex-1 overflow-auto p-4 md:p-5"
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-5"
             aria-label="Dashboard content"
           >
             <div className="mx-auto min-h-0">

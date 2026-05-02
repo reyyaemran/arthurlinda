@@ -149,7 +149,7 @@ function AccountSettingsInner({
         </p>
       </div>
 
-      <Tabs value={tab} onValueChange={onTabChange} className="w-full">
+      <Tabs value={tab} onValueChange={onTabChange} className="flex min-h-0 w-full flex-col">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <TabsList className="h-11 w-full max-w-md shrink-0 rounded-full border border-border/60 bg-muted/40 p-1">
             <TabsTrigger
@@ -330,7 +330,7 @@ function AccountSettingsInner({
           </div>
         </TabsContent>
 
-        <TabsContent value="wedding" className="mt-6">
+        <TabsContent value="wedding" className="mt-6 min-h-0 pb-10">
           <SettingsWeddingPage data={weddingData} onSavingChange={onWeddingSavingChange} />
         </TabsContent>
       </Tabs>

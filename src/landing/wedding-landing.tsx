@@ -122,14 +122,6 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
   const scheduleEvents = data.events;
   const eventDate = new Date(wedding.eventDate);
 
-  // Hosts line: traditional invitation copy, only rendered if either side is filled.
-  const hostsLine = (() => {
-    const groomHosts = wedding.groomParents?.trim();
-    const brideHosts = wedding.brideParents?.trim();
-    if (!groomHosts && !brideHosts) return null;
-    return { groomHosts, brideHosts };
-  })();
-
   // Group admin-saved accommodations by detected star tier; preserve admin order
   // within each group. Only tiers with at least one hotel are rendered.
   const accommodationGroups = (() => {
@@ -401,26 +393,6 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
             <span className="h-px w-10 bg-primary opacity-30" aria-hidden />
           </div>
 
-          {/* Hosts line — traditional invitation pattern (only when set) */}
-          {hostsLine ? (
-            <p
-              className="mt-7 text-[12px] font-light italic leading-relaxed tracking-[0.08em] text-foreground/60 sm:text-[13px]"
-              style={{ fontFamily: "var(--font-cormorant)" }}
-            >
-              Together with{hostsLine.groomHosts && hostsLine.brideHosts ? " their families" : ""}
-              {hostsLine.brideHosts ? (
-                <>
-                  <br />
-                  <span className="text-foreground/75">{hostsLine.brideHosts}</span>
-                </>
-              ) : null}
-              {hostsLine.brideHosts && hostsLine.groomHosts ? <span className="mx-2 text-foreground/30">·</span> : null}
-              {hostsLine.groomHosts ? (
-                <span className="text-foreground/75">{hostsLine.groomHosts}</span>
-              ) : null}
-            </p>
-          ) : null}
-
           {/* Names — large, impactful */}
           <h1
             className="mt-6 text-[4.35rem] font-light leading-[1.05] tracking-[0.01em] text-foreground sm:text-[5.35rem] md:text-[7rem] lg:text-[8.5rem]"
@@ -436,18 +408,6 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
             </span>
             {wedding.brideName}
           </h1>
-
-          {/* Full names — discreet line shown only if either is filled in admin */}
-          {(wedding.groomFullName?.trim() || wedding.brideFullName?.trim()) ? (
-            <p
-              className="mt-4 text-[11px] font-light tracking-[0.28em] uppercase text-foreground/55 sm:text-[12px]"
-              style={{ fontFamily: "var(--font-playfair)" }}
-            >
-              {wedding.groomFullName?.trim() ?? wedding.groomName}
-              <span className="mx-2 text-chart-5/60">&amp;</span>
-              {wedding.brideFullName?.trim() ?? wedding.brideName}
-            </p>
-          ) : null}
 
           {/* Date — extra offset + stronger type on small screens */}
           <div className="mx-auto mt-14 flex items-center justify-center gap-3 sm:mt-9 sm:gap-4 md:mt-8">

@@ -103,7 +103,8 @@ export function FormCollapsibleSection({
       <div
         className={cn(
           "overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-          open ? "max-h-[4000px] opacity-100" : "max-h-0 opacity-0",
+          /* Do not cap height: many story slides + images exceed any small max-h and clip with overflow-hidden. */
+          open ? "max-h-[200000px] opacity-100" : "max-h-0 opacity-0",
         )}
         id={id}
       >
