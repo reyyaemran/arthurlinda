@@ -23,6 +23,8 @@
 # user-uploaded story images (keep directory via .gitkeep)
 /public/uploads/story/*
 !/public/uploads/story/.gitkeep
+# user-uploaded gallery photos (legacy local fallback only — production uses Supabase Storage)
+/public/uploads/gallery/*
 
 # misc
 .DS_Store
