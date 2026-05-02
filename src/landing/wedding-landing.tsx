@@ -62,6 +62,20 @@ const VENUE_GALLERY_IMAGES: { src: string; alt: string }[] = [
 
 const VENUE_HERO = VENUE_GALLERY_IMAGES[0]!;
 
+/**
+ * Parse star count from a free-form category string (e.g. "Five star resort" → 5).
+ * Falls back to `0` so unrecognized categories collapse into a single "Other" group.
+ */
+function detectStarCount(category: string): number {
+  const text = category.toLowerCase();
+  if (/\b(5|five|★★★★★)\b|five[\s-]?star/.test(text)) return 5;
+  if (/\b(4|four|★★★★)\b|four[\s-]?star/.test(text)) return 4;
+  if (/\b(3|three|★★★)\b|three[\s-]?star/.test(text)) return 3;
+  if (/\b(2|two|★★)\b|two[\s-]?star/.test(text)) return 2;
+  if (/\b(1|one|★)\b|one[\s-]?star/.test(text)) return 1;
+  return 0;
+}
+
 /** Synxis booking for Angkor Grace (`hotel=41365`, `chain=30801`) — dates use the wedding timezone. */
 function synxisVenueBookingUrl(eventDateIso: string, timeZone: string): string {
   const start = new Date(eventDateIso);
@@ -100,11 +114,43 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
   const wedding = data;
   const landing = wedding.landing;
   const venueMapsQuery = [wedding.venueName, wedding.venueAddress].filter(Boolean).join(", ");
-  const venueMapsUrl = `https://maps.google.com/maps?q=${encodeURIComponent(venueMapsQuery)}`;
+  const venueMapsUrl = wedding.venueMapUrl?.trim()
+    ? wedding.venueMapUrl.trim()
+    : `https://maps.google.com/maps?q=${encodeURIComponent(venueMapsQuery)}`;
   const tz = wedding.timezone ?? "Asia/Phnom_Penh";
   const venueBookUrl = synxisVenueBookingUrl(wedding.eventDate, tz);
   const scheduleEvents = data.events;
   const eventDate = new Date(wedding.eventDate);
+
+  // Hosts line: traditional invitation copy, only rendered if either side is filled.
+  const hostsLine = (() => {
+    const groomHosts = wedding.groomParents?.trim();
+    const brideHosts = wedding.brideParents?.trim();
+    if (!groomHosts && !brideHosts) return null;
+    return { groomHosts, brideHosts };
+  })();
+
+  // Group admin-saved accommodations by detected star tier; preserve admin order
+  // within each group. Only tiers with at least one hotel are rendered.
+  const accommodationGroups = (() => {
+    type Tier = { key: string; label: string; tabLabel: string; hotels: typeof landing.accommodations };
+    const tiers: Record<number, Tier> = {
+      5: { key: "five-star", label: "Five star resort", tabLabel: "5 Stars", hotels: [] },
+      4: { key: "four-star", label: "Four star", tabLabel: "4 Stars", hotels: [] },
+      3: { key: "three-star", label: "Three star", tabLabel: "3 Stars", hotels: [] },
+      2: { key: "two-star", label: "Two star", tabLabel: "2 Stars", hotels: [] },
+      1: { key: "one-star", label: "One star", tabLabel: "1 Star", hotels: [] },
+      0: { key: "other", label: "Other", tabLabel: "Other", hotels: [] },
+    };
+    for (const hotel of landing.accommodations) {
+      const stars = detectStarCount(hotel.category);
+      tiers[stars]?.hotels.push(hotel);
+    }
+    return [5, 4, 3, 2, 1, 0]
+      .map((k) => tiers[k]!)
+      .filter((g) => g.hotels.length > 0);
+  })();
+
   const formattedDate = eventDate.toLocaleDateString("en-US", {
     timeZone: tz,
     weekday: "long",
@@ -355,6 +401,26 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
             <span className="h-px w-10 bg-primary opacity-30" aria-hidden />
           </div>
 
+          {/* Hosts line — traditional invitation pattern (only when set) */}
+          {hostsLine ? (
+            <p
+              className="mt-7 text-[12px] font-light italic leading-relaxed tracking-[0.08em] text-foreground/60 sm:text-[13px]"
+              style={{ fontFamily: "var(--font-cormorant)" }}
+            >
+              Together with{hostsLine.groomHosts && hostsLine.brideHosts ? " their families" : ""}
+              {hostsLine.brideHosts ? (
+                <>
+                  <br />
+                  <span className="text-foreground/75">{hostsLine.brideHosts}</span>
+                </>
+              ) : null}
+              {hostsLine.brideHosts && hostsLine.groomHosts ? <span className="mx-2 text-foreground/30">·</span> : null}
+              {hostsLine.groomHosts ? (
+                <span className="text-foreground/75">{hostsLine.groomHosts}</span>
+              ) : null}
+            </p>
+          ) : null}
+
           {/* Names — large, impactful */}
           <h1
             className="mt-6 text-[4.35rem] font-light leading-[1.05] tracking-[0.01em] text-foreground sm:text-[5.35rem] md:text-[7rem] lg:text-[8.5rem]"
@@ -370,6 +436,18 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
             </span>
             {wedding.brideName}
           </h1>
+
+          {/* Full names — discreet line shown only if either is filled in admin */}
+          {(wedding.groomFullName?.trim() || wedding.brideFullName?.trim()) ? (
+            <p
+              className="mt-4 text-[11px] font-light tracking-[0.28em] uppercase text-foreground/55 sm:text-[12px]"
+              style={{ fontFamily: "var(--font-playfair)" }}
+            >
+              {wedding.groomFullName?.trim() ?? wedding.groomName}
+              <span className="mx-2 text-chart-5/60">&amp;</span>
+              {wedding.brideFullName?.trim() ?? wedding.brideName}
+            </p>
+          ) : null}
 
           {/* Date — extra offset + stronger type on small screens */}
           <div className="mx-auto mt-14 flex items-center justify-center gap-3 sm:mt-9 sm:gap-4 md:mt-8">
@@ -886,6 +964,17 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
                   ))}
                 </p>
 
+                {landing.rsvpBody?.trim() ? (
+                  <p className="mt-5 max-w-md text-[14px] font-light leading-[1.75] text-muted-foreground">
+                    {landing.rsvpBody.split("\n").map((line, idx) => (
+                      <Fragment key={idx}>
+                        {idx > 0 ? <br /> : null}
+                        {line}
+                      </Fragment>
+                    ))}
+                  </p>
+                ) : null}
+
                 <div className="mt-10 space-y-6 border-t border-border/60 pt-10">
                   {/* Date & venue — highlighted */}
                   <div className="border border-chart-5/30 bg-gradient-to-b from-chart-5/[0.09] to-chart-5/[0.03] px-6 py-7 shadow-sm md:px-8 md:py-8">
@@ -1002,189 +1091,103 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
             </p>
           </ScrollReveal>
 
-          <Tabs defaultValue="five-star" className="mt-12">
-            <TabsList
-              className="grid h-auto w-full grid-cols-3 gap-0 rounded-none border border-border/80 bg-transparent p-0"
-              aria-label="Stay categories by star rating"
-            >
-              <TabsTrigger
-                value="five-star"
+          {accommodationGroups.length > 0 ? (
+            <Tabs defaultValue={accommodationGroups[0]!.key} className="mt-12">
+              <TabsList
                 className={cn(
-                  "rounded-none border-0 border-r border-border/70 bg-transparent py-3.5 text-[11px] font-medium tracking-[0.22em] uppercase shadow-none transition-colors",
-                  "text-primary/70 data-[state=active]:bg-primary/[0.06] data-[state=active]:text-primary",
+                  "grid h-auto w-full gap-0 rounded-none border border-border/80 bg-transparent p-0",
                 )}
-                style={{ fontFamily: "var(--font-playfair)" }}
+                style={{
+                  gridTemplateColumns: `repeat(${accommodationGroups.length}, minmax(0, 1fr))`,
+                }}
+                aria-label="Stay categories by star rating"
               >
-                5 Stars
-              </TabsTrigger>
-              <TabsTrigger
-                value="four-star"
-                className={cn(
-                  "rounded-none border-0 border-r border-border/70 bg-transparent py-3.5 text-[11px] font-medium tracking-[0.22em] uppercase shadow-none transition-colors",
-                  "text-primary/70 data-[state=active]:bg-primary/[0.06] data-[state=active]:text-primary",
-                )}
-                style={{ fontFamily: "var(--font-playfair)" }}
-              >
-                4 Stars
-              </TabsTrigger>
-              <TabsTrigger
-                value="three-star"
-                className={cn(
-                  "rounded-none border-0 bg-transparent py-3.5 text-[11px] font-medium tracking-[0.22em] uppercase shadow-none transition-colors",
-                  "text-primary/70 data-[state=active]:bg-primary/[0.06] data-[state=active]:text-primary",
-                )}
-                style={{ fontFamily: "var(--font-playfair)" }}
-              >
-                3 Stars
-              </TabsTrigger>
-            </TabsList>
+                {accommodationGroups.map((group, idx) => (
+                  <TabsTrigger
+                    key={group.key}
+                    value={group.key}
+                    className={cn(
+                      "rounded-none border-0 bg-transparent py-3.5 text-[11px] font-medium tracking-[0.22em] uppercase shadow-none transition-colors",
+                      idx < accommodationGroups.length - 1 ? "border-r border-border/70" : "",
+                      "text-primary/70 data-[state=active]:bg-primary/[0.06] data-[state=active]:text-primary",
+                    )}
+                    style={{ fontFamily: "var(--font-playfair)" }}
+                  >
+                    {group.tabLabel}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-            {(
-              [
-                {
-                  key: "five-star",
-                  label: "Five star resort",
-                  hotels: [
-                    {
-                      name: "Angkor Grace",
-                      bookingUrl: "https://angkorgrace.com/",
-                      description:
-                        "A luxury wellness-focused resort in Siem Reap with suites, residences and retreat programs designed around rest and rejuvenation.",
-                      distance: "Siem Reap • near Angkor area",
-                    },
-                    {
-                      name: "Amansara",
-                      bookingUrl: "https://www.aman.com/resorts/amansara",
-                      description:
-                        "A refined all-suite retreat at the gateway to Angkor Wat, known for private courtyards, plunge pools and curated temple experiences.",
-                      distance: "Road to Angkor • ~60 min from SAI airport",
-                    },
-                    {
-                      name: "Phum Baitang",
-                      bookingUrl: "https://www.zannierhotels.com/hotels/phum-baitang/",
-                      description:
-                        "A serene 'green village' set among rice paddies, featuring Khmer-inspired villas, wellness treatments and immersive cultural activities.",
-                      distance: "Outskirts of Siem Reap • close to Angkor",
-                    },
-                  ],
-                },
-                {
-                  key: "four-star",
-                  label: "Four star",
-                  hotels: [
-                    {
-                      name: "Lotus Blanc Resort",
-                      bookingUrl: "https://www.lotusblancresort.com/",
-                      description:
-                        "A tranquil coconut-garden resort on Road 6 with spacious rooms, a large pool and easy access to downtown and Angkor attractions.",
-                      distance: "Road 6, Siem Reap • short ride to center",
-                    },
-                    {
-                      name: "Viroth's Villa",
-                      bookingUrl: "https://www.viroth-villa.com/",
-                      description:
-                        "A stylish 19-room boutique stay offering poolside dining, spa treatments and calm leafy surroundings near key Siem Reap sights.",
-                      distance: "Siem Reap • near temple tour routes",
-                    },
-                    {
-                      name: "The Aviary Hotel",
-                      bookingUrl: "https://theaviaryhotel.com/",
-                      description:
-                        "An eco-conscious 43-room urban oasis in central Siem Reap, inspired by Cambodian birdlife and local artisan craftsmanship.",
-                      distance: "City center • ~10 min to Angkor Park",
-                    },
-                  ],
-                },
-                {
-                  key: "three-star",
-                  label: "Three star",
-                  hotels: [
-                    {
-                      name: "Babel Siem Reap",
-                      bookingUrl: "https://www.babelsiemreap.com/",
-                      description:
-                        "A sustainable guesthouse and boutique concept focused on responsible tourism, local community support and low-impact travel.",
-                      distance: "Siem Reap • community-focused location",
-                    },
-                    {
-                      name: "Le Chanthou",
-                      bookingUrl: "https://lechanthou.com/",
-                      description:
-                        "A countryside-inspired boutique retreat with pool-view villas, a quiet atmosphere and convenient access to temples and town.",
-                      distance: "Siem Reap • ~5 min tuk tuk to town center",
-                    },
-                    {
-                      name: "The Community Travel",
-                      bookingUrl: "https://www.thecommunitytravel.com/",
-                      description:
-                        "A purpose-driven stay and travel hub where bookings support local families, crafts and community-led experiences in Cambodia.",
-                      distance: "Preah Sihanouk Ave • near museum & palace",
-                    },
-                  ],
-                },
-              ] as const
-            ).map((group) => (
-              <TabsContent
-                key={group.key}
-                value={group.key}
-                className="m-0 data-[state=inactive]:hidden"
-              >
-                <div className="grid grid-cols-1 gap-px border-x border-b border-border bg-border sm:grid-cols-3">
-                  {group.hotels.map((hotel) => (
-                    <ScrollReveal key={hotel.name}>
-                      <div className="flex h-full flex-col bg-background p-8 transition-colors duration-300 hover:bg-secondary/20">
-                        <p
-                          className="text-[11px] tracking-[0.3em] uppercase text-primary/90"
-                          style={{ fontFamily: "var(--font-playfair)" }}
-                        >
-                          {group.label}
-                        </p>
-                        <p
-                          className="mt-4 text-[1.65rem] font-normal leading-tight text-foreground sm:text-[1.85rem]"
-                          style={{ fontFamily: "var(--font-playfair)" }}
-                        >
-                          {hotel.name}
-                        </p>
-                        <p className="mt-4 flex-1 text-sm font-light leading-relaxed text-muted-foreground">
-                          {hotel.description}
-                        </p>
-                        <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
-                          <span className="text-[11px] tracking-wide text-muted-foreground/60">
-                            {hotel.distance}
-                          </span>
-                          {hotel.bookingUrl ? (
-                            <a
-                              href={hotel.bookingUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full border border-primary px-5 py-1.5 text-[10px] tracking-[0.22em] uppercase text-primary transition-colors duration-300 hover:text-primary-foreground"
-                              style={{ fontFamily: "var(--font-playfair)" }}
-                            >
-                              <span
-                                className="absolute inset-0 -translate-x-full bg-primary transition-transform duration-300 ease-out group-hover:translate-x-0"
-                                aria-hidden
-                              />
-                              <span className="relative flex items-center gap-1.5">
-                                Book
-                                <ExternalLink className="h-2.5 w-2.5" />
-                              </span>
-                            </a>
-                          ) : (
-                            <span
-                              className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/40"
-                              style={{ fontFamily: "var(--font-playfair)" }}
-                            >
-                              No booking link
+              {accommodationGroups.map((group) => (
+                <TabsContent
+                  key={group.key}
+                  value={group.key}
+                  className="m-0 data-[state=inactive]:hidden"
+                >
+                  <div
+                    className={cn(
+                      "grid grid-cols-1 gap-px border-x border-b border-border bg-border",
+                      group.hotels.length === 1 ? "sm:grid-cols-1" : "",
+                      group.hotels.length === 2 ? "sm:grid-cols-2" : "",
+                      group.hotels.length >= 3 ? "sm:grid-cols-3" : "",
+                    )}
+                  >
+                    {group.hotels.map((hotel, hotelIdx) => (
+                      <ScrollReveal key={`${hotel.name}-${hotelIdx}`}>
+                        <div className="flex h-full flex-col bg-background p-8 transition-colors duration-300 hover:bg-secondary/20">
+                          <p
+                            className="text-[11px] tracking-[0.3em] uppercase text-primary/90"
+                            style={{ fontFamily: "var(--font-playfair)" }}
+                          >
+                            {hotel.category || group.label}
+                          </p>
+                          <p
+                            className="mt-4 text-[1.65rem] font-normal leading-tight text-foreground sm:text-[1.85rem]"
+                            style={{ fontFamily: "var(--font-playfair)" }}
+                          >
+                            {hotel.name}
+                          </p>
+                          <p className="mt-4 flex-1 text-sm font-light leading-relaxed text-muted-foreground">
+                            {hotel.description}
+                          </p>
+                          <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+                            <span className="text-[11px] tracking-wide text-muted-foreground/60">
+                              {hotel.distance}
                             </span>
-                          )}
+                            {hotel.bookingUrl ? (
+                              <a
+                                href={hotel.bookingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full border border-primary px-5 py-1.5 text-[10px] tracking-[0.22em] uppercase text-primary transition-colors duration-300 hover:text-primary-foreground"
+                                style={{ fontFamily: "var(--font-playfair)" }}
+                              >
+                                <span
+                                  className="absolute inset-0 -translate-x-full bg-primary transition-transform duration-300 ease-out group-hover:translate-x-0"
+                                  aria-hidden
+                                />
+                                <span className="relative flex items-center gap-1.5">
+                                  Book
+                                  <ExternalLink className="h-2.5 w-2.5" />
+                                </span>
+                              </a>
+                            ) : (
+                              <span
+                                className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/40"
+                                style={{ fontFamily: "var(--font-playfair)" }}
+                              >
+                                No booking link
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </ScrollReveal>
-                  ))}
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+                      </ScrollReveal>
+                    ))}
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          ) : null}
         </div>
       </section>
 

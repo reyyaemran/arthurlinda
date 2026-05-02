@@ -5,7 +5,10 @@ import { z } from "zod";
 
 import { getSession } from "@/lib/auth/session";
 import { getPrisma } from "@/lib/prisma";
+import { deleteImageByUrl } from "@/lib/storage";
 import { getWeddingForUser } from "@/lib/wedding/queries";
+
+export const runtime = "nodejs";
 
 const patchSchema = z.object({
   label: z.string().min(1).max(80).optional(),
@@ -84,10 +87,14 @@ export async function DELETE(
 
   await Promise.all(
     roll.photos.map(async (p) => {
-      if (!p.url.startsWith("/uploads/gallery/")) return;
-      const rel = p.url.replace(/^\//, "");
-      const abs = path.join(process.cwd(), "public", rel);
-      await unlink(abs).catch(() => {});
+      if (p.url.startsWith("/uploads/gallery/")) {
+        const rel = p.url.replace(/^\//, "");
+        const abs = path.join(process.cwd(), "public", rel);
+        await unlink(abs).catch(() => {});
+        return;
+      }
+      // Storage objects (skip data: URLs internally).
+      await deleteImageByUrl(p.url).catch(() => {});
     }),
   );
 

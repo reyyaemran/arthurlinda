@@ -14,14 +14,25 @@ const storySlideSchema = z.object({
   imageUrl: z
     .string()
     .optional()
-    .refine(
-      (s) =>
-        s === undefined ||
-        s.trim() === "" ||
-        /^\/uploads\/story\/[^/]+\.(jpe?g|png|webp|gif)$/i.test(s.trim()) ||
-        /^data:image\/(jpeg|png|webp|gif);base64,[a-z0-9+/=]+$/i.test(s.trim()),
-      "Invalid story image path",
-    ),
+    .refine((s) => {
+      if (s === undefined) return true;
+      const v = s.trim();
+      if (v === "") return true;
+      // Local dev (filesystem)
+      if (/^\/uploads\/story\/[^/]+\.(jpe?g|png|webp|gif)$/i.test(v)) return true;
+      // Inline data URLs (legacy / fallback)
+      if (/^data:image\/(jpeg|png|webp|gif);base64,[a-z0-9+/=]+$/i.test(v)) return true;
+      // Supabase Storage public URL — accept any https URL whose host ends in
+      // `.supabase.co` or `.supabase.in` (covers all regional sub-projects).
+      try {
+        const url = new URL(v);
+        if (url.protocol !== "https:") return false;
+        const host = url.hostname.toLowerCase();
+        return host.endsWith(".supabase.co") || host.endsWith(".supabase.in");
+      } catch {
+        return false;
+      }
+    }, "Invalid story image path"),
 });
 
 const accommodationSchema = z.object({

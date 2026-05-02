@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Camera, MoreVertical, Palette, Pencil, Plus, QrCode, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { thumbnailUrl } from "@/lib/storage";
 import {
   Drawer,
   DrawerClose,
@@ -353,7 +354,13 @@ export function GalleryAdminPage({
                           onClick={() => setPhotoDialogUrl(photo.url)}
                           className="group relative cursor-zoom-in overflow-hidden rounded-md border border-border/50"
                         >
-                          <img src={photo.url} alt={`${momentsLabel} upload`} className="h-28 w-full object-cover" />
+                          <img
+                            src={thumbnailUrl(photo.url, { width: 320, quality: 65 })}
+                            alt={`${momentsLabel} upload`}
+                            className="h-28 w-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                          />
                           <button
                             type="button"
                             onClick={(e) => {

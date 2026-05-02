@@ -4,7 +4,10 @@ import path from "node:path";
 
 import { getSession } from "@/lib/auth/session";
 import { getPrisma } from "@/lib/prisma";
+import { deleteImageByUrl } from "@/lib/storage";
 import { getWeddingForUser } from "@/lib/wedding/queries";
+
+export const runtime = "nodejs";
 
 export async function DELETE(
   _req: Request,
@@ -28,6 +31,9 @@ export async function DELETE(
     const rel = photo.url.replace(/^\//, "");
     const abs = path.join(process.cwd(), "public", rel);
     await unlink(abs).catch(() => {});
+  } else {
+    // Best-effort Storage cleanup; data: URLs and unknown hosts are no-ops.
+    await deleteImageByUrl(photo.url).catch(() => {});
   }
 
   return NextResponse.json({ ok: true });

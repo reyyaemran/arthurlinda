@@ -8,6 +8,16 @@ export function storySlideImageUrl(slide: { imageUrl?: string }): string | undef
   if (!u) return undefined;
   if (u.startsWith("/uploads/story/")) return u;
   if (/^data:image\/(jpeg|png|webp|gif);base64,[a-z0-9+/=]+$/i.test(u)) return u;
+  // Supabase Storage public URL.
+  try {
+    const url = new URL(u);
+    if (url.protocol === "https:") {
+      const host = url.hostname.toLowerCase();
+      if (host.endsWith(".supabase.co") || host.endsWith(".supabase.in")) return u;
+    }
+  } catch {
+    // not a valid URL — fall through
+  }
   return undefined;
 }
 

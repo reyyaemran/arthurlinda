@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { thumbnailUrl } from "@/lib/storage";
 
 type PhotoVm = {
   id: string;
@@ -64,7 +65,13 @@ export function GallerySharedPage({ weddingNames, photos }: Props) {
                   className="group overflow-hidden rounded-lg border border-black/10 text-left"
                 >
                   <div className="relative">
-                    <img src={photo.url} alt={`${photo.rollLabel} upload`} className="h-36 w-full object-cover" />
+                    <img
+                      src={thumbnailUrl(photo.url, { width: 480, quality: 65 })}
+                      alt={`${photo.rollLabel} upload`}
+                      className="h-36 w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent px-2 py-1.5 text-white">
                       <p className="truncate text-[11px] leading-tight tracking-[0.04em]" style={{ fontFamily: "var(--font-cormorant)" }}>
                         {formatMomentsLabel(photo.rollLabel)}

@@ -1,9 +1,7 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
-
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/auth/session";
+import { uploadImage } from "@/lib/storage";
 import { getWeddingForUser } from "@/lib/wedding/queries";
 
 export const runtime = "nodejs";
@@ -11,10 +9,10 @@ export const runtime = "nodejs";
 const MAX_BYTES = 4 * 1024 * 1024;
 
 const MIME_TO_EXT: Record<string, string> = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp",
-  "image/gif": ".gif",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
 };
 
 /** First bytes → expected mime (subset) for basic content sniffing. */
@@ -79,25 +77,17 @@ export async function POST(req: Request) {
   }
 
   const ext = MIME_TO_EXT[declared];
-  const isServerlessRuntime = process.env.VERCEL === "1" || !!process.env.AWS_REGION;
-
-  if (isServerlessRuntime) {
-    // Vercel filesystem is ephemeral; keep image in DB-friendly data URL.
-    return NextResponse.json({ url: `data:${declared};base64,${Buffer.from(buf).toString("base64")}` });
-  }
-
-  const id = crypto.randomUUID();
-  const filename = `${id}${ext}`;
-  const dir = path.join(process.cwd(), "public", "uploads", "story");
-  await mkdir(dir, { recursive: true });
-  const fullPath = path.join(dir, filename);
 
   try {
-    await writeFile(fullPath, buf);
-  } catch (e) {
-    console.error("story-image write failed", e);
+    const result = await uploadImage({
+      data: buf,
+      contentType: declared,
+      folder: "story",
+      ext,
+    });
+    return NextResponse.json({ url: result.url });
+  } catch (err) {
+    console.error("story-image upload failed", err);
     return NextResponse.json({ error: "Could not save story image." }, { status: 500 });
   }
-
-  return NextResponse.json({ url: `/uploads/story/${filename}` });
 }

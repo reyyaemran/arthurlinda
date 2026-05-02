@@ -1,9 +1,9 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { getPrisma } from "@/lib/prisma";
+import { uploadImage } from "@/lib/storage";
+
+export const runtime = "nodejs";
 
 const MAX_UPLOAD_BYTES = 6 * 1024 * 1024;
 
@@ -32,21 +32,20 @@ export async function POST(req: Request) {
 
   const bytes = Buffer.from(await file.arrayBuffer());
   const mimeType = file.type === "image/png" ? "image/png" : "image/jpeg";
-  const isServerlessRuntime = process.env.VERCEL === "1" || process.env.AWS_REGION;
+  const ext = mimeType === "image/png" ? "png" : "jpg";
 
   let url: string;
-  if (isServerlessRuntime) {
-    // Vercel/serverless filesystems are ephemeral; persist image directly via DB URL payload.
-    url = `data:${mimeType};base64,${bytes.toString("base64")}`;
-  } else {
-    const ext = mimeType === "image/png" ? "png" : "jpg";
-    const filename = `${roll.token}-${randomUUID()}.${ext}`;
-    const relDir = path.join("uploads", "gallery");
-    const absDir = path.join(process.cwd(), "public", relDir);
-    await mkdir(absDir, { recursive: true });
-    const absPath = path.join(absDir, filename);
-    await writeFile(absPath, bytes);
-    url = `/${relDir.replaceAll(path.sep, "/")}/${filename}`;
+  try {
+    const result = await uploadImage({
+      data: bytes,
+      contentType: mimeType,
+      folder: `gallery/${roll.token}`,
+      ext,
+    });
+    url = result.url;
+  } catch (err) {
+    console.error("gallery upload failed", err);
+    return NextResponse.json({ error: "Could not save photo" }, { status: 500 });
   }
 
   const photo = await getPrisma().galleryPhoto.create({

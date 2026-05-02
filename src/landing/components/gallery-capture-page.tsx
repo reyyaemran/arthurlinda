@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Download, Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { thumbnailUrl } from "@/lib/storage";
 
 type PhotoVm = { id: string; url: string; createdAt: string };
 
@@ -455,7 +456,13 @@ export function GalleryCapturePage({
                   }}
                   className="cursor-zoom-in overflow-hidden rounded-xl border border-black/10 bg-white"
                 >
-                  <img src={photo.url} alt="Uploaded guest photo" className="h-40 w-full object-cover" />
+                  <img
+                    src={thumbnailUrl(photo.url, { width: 480, quality: 65 })}
+                    alt="Uploaded guest photo"
+                    className="h-40 w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </button>
               ))}
             </div>
