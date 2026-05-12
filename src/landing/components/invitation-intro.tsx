@@ -295,7 +295,7 @@ export function InvitationIntro({
                     <p
                       className="mt-3 text-[10px] tracking-[0.32em] uppercase text-primary/85 [font-family:var(--font-playfair)]"
                     >
-                      Together with their families
+                      Celebrate love, laughter and forever
                     </p>
                     <p
                       className="mt-2.5 text-[1.7rem] font-light leading-[1.05] text-foreground sm:text-[1.9rem]"

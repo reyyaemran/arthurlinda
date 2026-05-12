@@ -25,6 +25,7 @@ export default async function PublicSharedGalleryPage({
   return (
     <GallerySharedPage
       weddingNames={`${wedding.groomName} & ${wedding.brideName}`}
+      eventDateIso={wedding.eventDate.toISOString()}
       photos={photos.map((p) => ({
         id: p.id,
         url: p.url,

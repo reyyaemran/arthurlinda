@@ -5,17 +5,22 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { label: "Our Story", id: "our-story" },
-  { label: "When & Where", id: "when-where" },
-  { label: "R.S.V.P.", id: "rsvp-section" },
-  { label: "Stay", id: "accommodation" },
+  { label: "Our Story", id: "our-story", action: "scroll" },
+  { label: "When & Where", id: "when-where", action: "scroll" },
+  { label: "R.S.V.P.", id: "rsvp-section", action: "scroll" },
+  { label: "Stay", id: "accommodation", action: "scroll" },
+  { label: "Moments", id: "moments", action: "moments" },
 ] as const;
 
 /** Sections where the floating nav uses light-on-dark treatment (hero handles its own contrast). */
 const DARK_SECTION_IDS: string[] = [];
 const PROBE_Y = 36;
 
-export function LandingHeader() {
+type LandingHeaderProps = {
+  onMomentsClick?: () => void;
+};
+
+export function LandingHeader({ onMomentsClick }: LandingHeaderProps) {
   const [onDark, setOnDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -90,6 +95,15 @@ export function LandingHeader() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleNavClick = (link: (typeof NAV_LINKS)[number]) => {
+    setMobileOpen(false);
+    if (link.action === "moments") {
+      onMomentsClick?.();
+      return;
+    }
+    document.getElementById(link.id)?.scrollIntoView({ behavior: "smooth" });
+  };
+
   const links = NAV_LINKS;
 
   const textColor = onDark ? "rgba(251,248,239,0.96)" : "rgba(43,50,16,0.92)";
@@ -154,7 +168,7 @@ export function LandingHeader() {
                 <button
                   key={link.id}
                   type="button"
-                  onClick={() => scrollTo(link.id)}
+                  onClick={() => handleNavClick(link)}
                   className="whitespace-nowrap text-[14px] tracking-[0.18em] uppercase"
                   style={{
                     fontFamily: "var(--font-playfair)",
@@ -214,7 +228,7 @@ export function LandingHeader() {
             >
               <button
                 type="button"
-                onClick={() => scrollTo(link.id)}
+                onClick={() => handleNavClick(link)}
                 className="w-full py-3 text-left text-[14px] tracking-[0.2em] uppercase"
                 style={{
                   fontFamily: "var(--font-playfair)",

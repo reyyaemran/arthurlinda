@@ -14,6 +14,7 @@ type PhotoVm = {
 
 type Props = {
   weddingNames: string;
+  eventDateIso: string;
   photos: PhotoVm[];
 };
 
@@ -24,8 +25,20 @@ function formatMomentsLabel(rawLabel: string) {
   return `Moments of ${normalized || "01"}`;
 }
 
-export function GallerySharedPage({ weddingNames, photos }: Props) {
+function formatWeddingDate(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export function GallerySharedPage({ weddingNames, eventDateIso, photos }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const weddingDateLabel = formatWeddingDate(eventDateIso);
   const formatFilmTimestamp = (iso: string) => {
     const d = new Date(iso);
     const day = String(d.getDate()).padStart(2, "0");
@@ -47,8 +60,9 @@ export function GallerySharedPage({ weddingNames, photos }: Props) {
             className="mt-1 text-[1.65rem] leading-tight tracking-tight text-black sm:text-[1.9rem]"
             style={{ fontFamily: "var(--font-cormorant)" }}
           >
-            In the Frame
+            Moments of Us
           </h1>
+          {weddingDateLabel ? <p className="mt-1 text-sm text-black/55">{weddingDateLabel}</p> : null}
           <p className="mt-1 text-sm text-black/55">{weddingNames}</p>
         </div>
 

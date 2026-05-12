@@ -109,6 +109,8 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
   const heroSvgRef = useRef<HTMLDivElement>(null);
   const [heroSvg, setHeroSvg] = useState<string | null>(null);
   const [venueLightboxIndex, setVenueLightboxIndex] = useState<number | null>(null);
+  const [momentsDialogOpen, setMomentsDialogOpen] = useState(false);
+  const [siteOrigin, setSiteOrigin] = useState("");
   const [useNativeStoryScroll, setUseNativeStoryScroll] = useState(false);
   const [showStorySwipeHint, setShowStorySwipeHint] = useState(false);
   const wedding = data;
@@ -162,6 +164,11 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
     return `${a} – ${new Date(end).toLocaleTimeString("en-US", opts)}`;
   };
 
+  const momentsShareUrl = siteOrigin
+    ? `${siteOrigin}/gallery/shared/${wedding.slug}`
+    : `/gallery/shared/${wedding.slug}`;
+  const momentsQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(momentsShareUrl)}`;
+
   /** Landing lives at `/`; drop legacy `#home` so the URL bar stays clean. */
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -172,6 +179,11 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
       "",
       `${window.location.pathname}${window.location.search}`,
     );
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setSiteOrigin(window.location.origin);
   }, []);
 
   const scrollToRsvp = () => {
@@ -355,7 +367,7 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
         brideName={wedding.brideName}
         dateLabel={formattedDate}
       />
-      <LandingHeader />
+      <LandingHeader onMomentsClick={() => setMomentsDialogOpen(true)} />
 
       {/* ─── HERO — wind on fills + grey line art (.hero-line) ─ */}
       <section id="hero" className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6">
@@ -1186,6 +1198,41 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
           </a>
         </ScrollReveal>
       </footer>
+
+      <Dialog open={momentsDialogOpen} onOpenChange={setMomentsDialogOpen}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogTitle
+            className="text-[1.55rem] font-normal leading-tight tracking-tight"
+            style={{ fontFamily: "var(--font-cormorant)" }}
+          >
+            Moments
+          </DialogTitle>
+          <div className="space-y-3">
+            {/* Use a web-hosted QR generator so guests can scan instantly. */}
+            <img
+              src={momentsQrUrl}
+              alt="Moments QR code"
+              className="w-full rounded-lg border border-border/50"
+            />
+            <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground [font-family:var(--font-playfair)]">
+                How to use
+              </p>
+              <ol className="mt-1.5 space-y-1 text-xs leading-relaxed text-foreground/85">
+                <li>1. Open phone camera and scan this QR code.</li>
+                <li>2. Tap the popup link to open Moments gallery.</li>
+                <li>3. Share and view all uploaded moments.</li>
+              </ol>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background p-3">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground [font-family:var(--font-playfair)]">
+                Direct link
+              </p>
+              <p className="mt-1 break-all text-xs text-foreground/75">{momentsShareUrl}</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={venueLightboxIndex !== null}
