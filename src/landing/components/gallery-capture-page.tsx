@@ -52,9 +52,17 @@ function formatKodakTimestamp(date: Date) {
   return `${dd} ${mm} '${yy}  ${hh}:${min}`;
 }
 
+function clamp255(v: number) {
+  return Math.max(0, Math.min(255, v));
+}
+
 async function processCapturedPhoto(
   file: File,
-  options: { applyVintage: boolean; weddingNames: string; eventDateIso: string },
+  options: {
+    filterStyle: "KODAK_COLOR" | "B_AND_W" | "ORIGINAL";
+    weddingNames: string;
+    eventDateIso: string;
+  },
 ): Promise<File> {
   const img = new Image();
   const src = URL.createObjectURL(file);
@@ -76,19 +84,32 @@ async function processCapturedPhoto(
   const ctx = canvas.getContext("2d");
   if (!ctx) return file;
 
-  // Base grade (optional vintage B&W).
-  ctx.filter = options.applyVintage
-    ? "grayscale(1) contrast(1.08) brightness(1.02)"
-    : "contrast(1.01) brightness(1.01)";
+  // Base grade (Kodak-inspired film color or minimal cleanup for original mode).
+  ctx.filter =
+    options.filterStyle === "KODAK_COLOR"
+      ? "contrast(0.97) brightness(1.02) saturate(0.95)"
+      : options.filterStyle === "B_AND_W"
+        ? "grayscale(1) contrast(1.08) brightness(1.02)"
+        : "contrast(1.01) brightness(1.01)";
   ctx.drawImage(img, 0, 0, w, h);
   ctx.filter = "none";
 
-  if (options.applyVintage) {
-    // Film grain + subtle fade + vignette for analog look.
+  if (options.filterStyle === "KODAK_COLOR") {
     const data = ctx.getImageData(0, 0, w, h);
     const cx = w / 2;
     const cy = h / 2;
     const maxDist = Math.sqrt(cx * cx + cy * cy);
+    let lumTotal = 0;
+
+    for (let i = 0; i < data.data.length; i += 4 * 16) {
+      const r0 = data.data[i];
+      const g0 = data.data[i + 1];
+      const b0 = data.data[i + 2];
+      lumTotal += (r0 * 0.2126 + g0 * 0.7152 + b0 * 0.0722) / 255;
+    }
+    const sampled = Math.max(1, Math.floor(data.data.length / (4 * 16)));
+    const avgLum = lumTotal / sampled;
+    const isLowLight = avgLum < 0.38;
 
     for (let i = 0; i < data.data.length; i += 4) {
       const p = i / 4;
@@ -96,30 +117,159 @@ async function processCapturedPhoto(
       const y = Math.floor(p / w);
       const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2) / maxDist;
 
-      const grain = (Math.random() - 0.5) * 28;
+      const r0 = data.data[i];
+      const g0 = data.data[i + 1];
+      const b0 = data.data[i + 2];
+      let r = r0;
+      let g = g0;
+      let b = b0;
+      const lum = (r0 * 0.2126 + g0 * 0.7152 + b0 * 0.0722) / 255;
 
+      // Kodak Gold-like warmth and slight magenta midtone bias.
+      r = r * 1.07 + 7;
+      g = g * 1.02 + 4;
+      b = b * 0.9 - 6;
+
+      const mid = Math.max(0, 1 - Math.abs(lum - 0.56) / 0.56);
+      r += 9 * mid;
+      b += 4 * mid;
+
+      // Split-tone: cool shadows, warm highlights.
+      const shadowW = Math.pow(1 - lum, 1.2) * 0.12;
+      const highlightW = Math.pow(lum, 1.1) * 0.18;
+      r = r - 10 * shadowW + 26 * highlightW;
+      g = g + 10 * shadowW + 16 * highlightW;
+      b = b + 24 * shadowW - 8 * highlightW;
+
+      // Muted film saturation while keeping oranges/reds punchier.
+      const avg = (r + g + b) / 3;
+      r = avg + (r - avg) * 0.98;
+      g = avg + (g - avg) * 0.88;
+      b = avg + (b - avg) * 0.82;
+
+      // Compressed tonal curve with lifted blacks and soft highlights.
+      r = 24 + r * 0.88;
+      g = 25 + g * 0.87;
+      b = 30 + b * 0.86;
+      if (lum > 0.78) {
+        r += (lum - 0.78) * 28;
+        g += (lum - 0.78) * 20;
+      }
+
+      // Low-light / flash-like behavior: bright center, dark falloff.
+      if (isLowLight) {
+        const centerBoost = Math.max(0, 1 - dist * 1.85);
+        r += 36 * centerBoost;
+        g += 24 * centerBoost;
+        b += 12 * centerBoost;
+        if (dist > 0.52) {
+          r *= 0.79;
+          g *= 0.78;
+          b *= 0.88;
+        }
+      }
+
+      // Plastic lens-style vignette + grain.
+      const vignette = 1 - Math.max(0, dist - 0.28) * 0.3;
+      r *= vignette;
+      g *= vignette;
+      b *= vignette;
+      const grainAmount = (Math.random() - 0.5) * (10 + (1 - lum) * 20);
+      r += grainAmount;
+      g += grainAmount * 0.85;
+      b += grainAmount * 1.12;
+      if (lum < 0.32 && Math.random() < 0.08) {
+        r += (Math.random() - 0.5) * 20;
+        g += (Math.random() - 0.5) * 16;
+      }
+
+      data.data[i] = clamp255(r);
+      data.data[i + 1] = clamp255(g);
+      data.data[i + 2] = clamp255(b);
+    }
+    ctx.putImageData(data, 0, 0);
+
+    // Halation: warm bloom around bright areas.
+    const halationCanvas = document.createElement("canvas");
+    halationCanvas.width = w;
+    halationCanvas.height = h;
+    const halationCtx = halationCanvas.getContext("2d");
+    if (halationCtx) {
+      const source = ctx.getImageData(0, 0, w, h);
+      const glow = halationCtx.createImageData(w, h);
+      for (let i = 0; i < source.data.length; i += 4) {
+        const r = source.data[i];
+        const g = source.data[i + 1];
+        const b = source.data[i + 2];
+        const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        if (lum > 205) {
+          glow.data[i] = clamp255(r + 18);
+          glow.data[i + 1] = clamp255(g + 12);
+          glow.data[i + 2] = clamp255(b - 8);
+          glow.data[i + 3] = clamp255((lum - 205) * 2.5);
+        }
+      }
+      halationCtx.putImageData(glow, 0, 0);
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      ctx.filter = "blur(2.2px)";
+      ctx.globalAlpha = isLowLight ? 0.14 : 0.22;
+      ctx.drawImage(halationCanvas, 0, 0);
+      ctx.restore();
+    }
+
+    // Edge softness (plastic lens feel).
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    ctx.filter = "blur(1.2px)";
+    ctx.drawImage(canvas, 0, 0);
+    ctx.restore();
+
+    // Optional subtle light leak.
+    if (Math.random() < 0.26) {
+      const leak = ctx.createLinearGradient(
+        Math.random() < 0.5 ? 0 : w,
+        0,
+        Math.random() < 0.5 ? w * 0.42 : w * 0.58,
+        h,
+      );
+      leak.addColorStop(0, "rgba(255,112,42,0.16)");
+      leak.addColorStop(0.5, "rgba(255,76,28,0.06)");
+      leak.addColorStop(1, "rgba(255,76,28,0)");
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      ctx.fillStyle = leak;
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+    }
+  }
+
+  if (options.filterStyle === "B_AND_W") {
+    // Previous monochrome disposable look.
+    const data = ctx.getImageData(0, 0, w, h);
+    const cx = w / 2;
+    const cy = h / 2;
+    const maxDist = Math.sqrt(cx * cx + cy * cy);
+    for (let i = 0; i < data.data.length; i += 4) {
+      const p = i / 4;
+      const x = p % w;
+      const y = Math.floor(p / w);
+      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2) / maxDist;
+      const grain = (Math.random() - 0.5) * 28;
       const r0 = data.data[i];
       const g0 = data.data[i + 1];
       const b0 = data.data[i + 2];
       const lum = (r0 * 0.2126 + g0 * 0.7152 + b0 * 0.0722) / 255;
-
-      // Lift blacks slightly and compress highlights a touch.
       const lift = 9 + (1 - lum) * 5;
       const rolloff = lum * 4;
-
-      // vignette: darken edges softly
       const vignette = 1 - Math.max(0, dist - 0.22) * 0.38;
-
       const mono = (r0 + g0 + b0) / 3;
       const px = (mono + grain + lift - rolloff) * vignette;
-
-      data.data[i] = Math.max(0, Math.min(255, px));
-      data.data[i + 1] = Math.max(0, Math.min(255, px));
-      data.data[i + 2] = Math.max(0, Math.min(255, px));
+      data.data[i] = clamp255(px);
+      data.data[i + 1] = clamp255(px);
+      data.data[i + 2] = clamp255(px);
     }
     ctx.putImageData(data, 0, 0);
-
-    // final softening pass to mimic disposable lens
     ctx.filter = "blur(0.45px) contrast(0.98)";
     ctx.globalAlpha = 0.16;
     ctx.drawImage(canvas, 0, 0);
@@ -200,7 +350,11 @@ export function GalleryCapturePage({
   >([]);
   const [previewDialogUrl, setPreviewDialogUrl] = useState<string | null>(null);
   const [previewDialogName, setPreviewDialogName] = useState<string>("moment");
-  const [filterMode, setFilterMode] = useState<"VINTAGE" | "ORIGINAL">(initialFilterMode);
+  const [rollFilterMode, setRollFilterMode] = useState<"VINTAGE" | "ORIGINAL">(initialFilterMode);
+  const [selectedFilter, setSelectedFilter] = useState<"KODAK_COLOR" | "B_AND_W" | "ORIGINAL">(
+    initialFilterMode === "VINTAGE" ? "KODAK_COLOR" : "ORIGINAL",
+  );
+  const [filterTouched, setFilterTouched] = useState(false);
   const refreshingRef = useRef(false);
   const momentsLabel = useMemo(() => formatMomentsLabel(label), [label]);
 
@@ -221,14 +375,17 @@ export function GalleryCapturePage({
       if (res.ok && data.roll && data.photos) {
         setPhotoCount(data.roll.photoCount);
         if (data.roll.filterMode === "VINTAGE" || data.roll.filterMode === "ORIGINAL") {
-          setFilterMode(data.roll.filterMode);
+          setRollFilterMode(data.roll.filterMode);
+          if (!filterTouched) {
+            setSelectedFilter(data.roll.filterMode === "VINTAGE" ? "KODAK_COLOR" : "ORIGINAL");
+          }
         }
         setPhotos(data.photos);
       }
     } finally {
       refreshingRef.current = false;
     }
-  }, [token]);
+  }, [token, filterTouched]);
 
   useEffect(() => {
     const tick = () => {
@@ -264,7 +421,7 @@ export function GalleryCapturePage({
         let filtered: File = file;
         try {
           filtered = await processCapturedPhoto(file, {
-            applyVintage: filterMode === "VINTAGE",
+            filterStyle: selectedFilter,
             weddingNames,
             eventDateIso,
           });
@@ -373,6 +530,59 @@ export function GalleryCapturePage({
           >
             {momentsLabel}
           </h1>
+
+          <div className="mt-3">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-black/50 [font-family:var(--font-playfair)]">
+              Filter
+            </p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFilter("KODAK_COLOR");
+                  setFilterTouched(true);
+                }}
+                className={`rounded-full border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition ${
+                  selectedFilter === "KODAK_COLOR"
+                    ? "border-black bg-black text-white"
+                    : "border-black/15 bg-black/5 text-black hover:bg-black hover:text-white"
+                }`}
+              >
+                Kodak color
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFilter("B_AND_W");
+                  setFilterTouched(true);
+                }}
+                className={`rounded-full border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition ${
+                  selectedFilter === "B_AND_W"
+                    ? "border-black bg-black text-white"
+                    : "border-black/15 bg-black/5 text-black hover:bg-black hover:text-white"
+                }`}
+              >
+                B&W
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFilter("ORIGINAL");
+                  setFilterTouched(true);
+                }}
+                className={`rounded-full border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition ${
+                  selectedFilter === "ORIGINAL"
+                    ? "border-black bg-black text-white"
+                    : "border-black/15 bg-black/5 text-black hover:bg-black hover:text-white"
+                }`}
+              >
+                Original
+              </button>
+            </div>
+            <p className="mt-1 text-[10px] text-black/45">
+              Default for this table: {rollFilterMode === "VINTAGE" ? "Kodak M35 color" : "Original"}
+            </p>
+          </div>
 
           <div className="mt-3 grid grid-cols-1 gap-2">
             <button

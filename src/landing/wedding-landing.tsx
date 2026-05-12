@@ -120,7 +120,25 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
     ? wedding.venueMapUrl.trim()
     : `https://maps.google.com/maps?q=${encodeURIComponent(venueMapsQuery)}`;
   const tz = wedding.timezone ?? "Asia/Phnom_Penh";
-  const venueBookUrl = synxisVenueBookingUrl(wedding.eventDate, tz);
+  const venueBookingEmailUrl = (() => {
+    const to = "reservation.angkorgrace@tui-blue.com";
+    const cc = "Kate.Ford@tui-blue.com";
+    const subject = "Linda and Arthur - Booking Request";
+    const body = [
+      "Hello Angkor Grace Team,",
+      "",
+      "I would like to book accommodation for Linda and Arthur's wedding.",
+      "",
+      "Booking details:",
+      "- Guest name:",
+      "- Check-in date:",
+      "- Check-out date:",
+      "- Number of guests:",
+      "- Room preference:",
+      "- Special requests:",
+    ].join("\n");
+    return `mailto:${to}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  })();
   const scheduleEvents = data.events;
   const eventDate = new Date(wedding.eventDate);
 
@@ -882,9 +900,7 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
                   Location
                 </a>
                 <a
-                  href={venueBookUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={venueBookingEmailUrl}
                   aria-label="Book — 5% off for guests"
                   className={cn(
                     "flex items-center justify-center gap-2 py-3.5 text-[11px] font-medium tracking-[0.22em] uppercase text-primary/85 transition-colors hover:bg-muted/40 hover:text-primary",

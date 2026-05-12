@@ -315,7 +315,7 @@ export function GalleryAdminPage({
                       >
                         <DropdownMenuRadioItem value="VINTAGE">
                           <Palette className="h-3.5 w-3.5" />
-                          Vintage B&W
+                        Kodak M35 color
                         </DropdownMenuRadioItem>
                         <DropdownMenuRadioItem value="ORIGINAL">
                           <Camera className="h-3.5 w-3.5" />
