@@ -901,17 +901,17 @@ export function WeddingLanding({ data }: { data: PublicWeddingPayload }) {
                 </a>
                 <a
                   href={venueBookingEmailUrl}
-                  aria-label="Book — 5% off for guests"
+                  aria-label="Book — 20% discount for guests"
                   className={cn(
-                    "flex items-center justify-center gap-2 py-3.5 text-[11px] font-medium tracking-[0.22em] uppercase text-primary/85 transition-colors hover:bg-muted/40 hover:text-primary",
+                    "group flex items-center justify-center gap-2.5 py-3.5 text-[11px] font-medium tracking-[0.22em] uppercase text-primary/85 transition-colors hover:bg-muted/40 hover:text-primary",
                   )}
                 >
                   <span style={{ fontFamily: "var(--font-playfair)" }}>Book</span>
                   <span
-                    className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[8px] font-semibold tracking-[0.12em] text-primary"
-                    style={{ fontFamily: "var(--font-playfair)" }}
+                    className="shrink-0 text-[1.05rem] font-semibold tabular-nums leading-none tracking-[0.02em] text-chart-5 sm:text-[1.2rem]"
+                    style={{ fontFamily: "var(--font-cormorant)" }}
                   >
-                    5% off
+                    20%
                   </span>
                 </a>
               </div>
